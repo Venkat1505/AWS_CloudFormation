@@ -1,0 +1,321 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS CloudFormation Template to build a CAMM 7 set of Aurora instances",
+    "Parameters": {
+        "CidrIp1": {
+            "Type": "String",
+            "Description": "Provide the CIDR IP for the security group for LB and Nodes; i.e. 10.155.104.0/22",
+            "AllowedValues": [ "10.23.42.0/23" ],
+            "ConstraintDescription": "Must be a valid CIDR range in the form of x.x.x.x/x"
+        },
+        "CidrIp2": {
+            "Type": "String",
+            "Description": "Provide the CIDR IP for the security group for LB and Nodes; i.e. 10.155.104.0/22",
+            "AllowedValues": [ "149.45.241.0/26" ],
+            "ConstraintDescription": "Must be a valid CIDR range in the form of x.x.x.x/x"
+        },
+	    "CWxCidr": {
+            "Type": "String",
+            "Description": "Provide the CIDR IP for the CWx Datacenter; i.e. 159.140.0.0/16",
+            "AllowedValues": [ "159.140.0.0/16" ],
+            "ConstraintDescription": "Must be a valid CIDR range in the form of x.x.x.x/x"
+    },
+        
+        "DevelopmentTeam": {
+            "Type": "String",
+            "Description": "Assign a tag to identify the development team for these Aurora instances; i.e. CammPlatformServices"
+        },
+        "OperationsTeam": {
+            "Type": "String",
+            "Description": "Assign a tag to identify the operations team for these Aurora instances; i.e. CammPlatformServices"
+        },
+        "Environment": {
+            "Type": "String",
+            "Description": "Used to appropriately tag created resources.",
+            "AllowedValues": [
+                
+                "Production"
+            ]
+        }
+    },
+    "Resources": {
+        "CAMM7LoadBalancerSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Rules that allow communication inbound to a load balancer & outbound from the load balancer to communicate with nodes it is balancing.",
+                "VpcId": "vpc-09ad716ea82aef8a1",
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp1"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "Description": "HTTP - Internal VPC CIDR 1"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp1"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "2575",
+                        "ToPort": "2575",
+                        "Description": "HL7"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp1"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "Description": "HTTPS - Internal VPC CIDR 1"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp2"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "Description": "HTTP - Internal VPC CIDR 2"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp2"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "2575",
+                        "ToPort": "2575",
+                        "Description": "HL7"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp2"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "Description": "HTTPS - Internal VPC CIDR 2"
+                    },
+		    {
+          	  	"CidrIp": { "Ref": "CWxCidr" },
+            	  	"IpProtocol": "tcp",
+             	 	"FromPort": "443",
+           	 	"ToPort": "443",
+           	  	"Description": "HTTPS - CWx Datacenter"
+         	    },
+          	   {
+           	        "CidrIp": "3.13.220.214/32",
+            		"Description": "DMZ Subnet B NAT Gateway",
+            		"FromPort": 443,
+            		"IpProtocol": "tcp",
+            		"ToPort": 443
+          	   },
+          	  {
+            		"CidrIp": "3.18.44.197/32",
+            		"Description": "DMZ Subnet A NAT Gateway",
+            		"FromPort": 443,
+            		"IpProtocol": "tcp",
+            		"ToPort": 443
+         	  }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp1"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "Description": "HTTPS - Internal VPC CIDR 1"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp1"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "2575",
+                        "ToPort": "2575",
+                        "Description": "HL7"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp1"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "Description": "HTTPS - Internal VPC CIDR 1"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp2"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "Description": "HTTP - Internal VPC CIDR 2"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp2"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "2575",
+                        "ToPort": "2575",
+                        "Description": "HL7"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp2"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "Description": "HTTPS - Internal VPC CIDR 2"
+                    },
+		    {
+            		"CidrIp": { "Ref": "CWxCidr" },
+            		"IpProtocol": "tcp",
+            		"FromPort": "443",
+            		"ToPort": "443",
+            		"Description": "HTTPS - CWx Datacenter"
+          	    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "CAMM7-Prod-LoadBalancerSG"
+                    },
+                    {
+                        "Key": "DevelopmentTeam",
+                        "Value": {
+                            "Ref": "DevelopmentTeam"
+                        }
+                    },
+                    {
+                        "Key": "OperationsTeam",
+                        "Value": {
+                            "Ref": "OperationsTeam"
+                        }
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": {
+                            "Ref": "Environment"
+                        }
+                    }
+                ]
+            }
+        },
+        "Camm7NodeSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Rules that allow communication in to a load balancer and for the load balancer to communicate with nodes it is balancing.",
+                 "VpcId": "vpc-09ad716ea82aef8a1",
+                 "SecurityGroupIngress": [
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp1"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "Description": "HTTPS - Internal VPC CIDR 1"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp1"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "2575",
+                        "ToPort": "2575",
+                        "Description": "HL7"
+                    },
+                    
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp1"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "Description": "HTTP - Internal VPC CIDR 1"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp2"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "Description": "HTTPS - Internal VPC CIDR 2"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp2"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "2575",
+                        "ToPort": "2575",
+                        "Description": "HL7"
+                    },
+                    
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp2"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "Description": "HTTP - Internal VPC CIDR 2"
+                    },
+                    {
+                        "CidrIp": {
+                            "Ref": "CidrIp2"
+                        },
+                        "IpProtocol": "tcp",
+                        "FromPort": "5701",
+                        "ToPort": "5708",
+                        "Description": "Hazelcast"
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "IpProtocol": "-1"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "CAMM7-Prod-NodeSG"
+                    },
+                    {
+                        "Key": "DevelopmentTeam",
+                        "Value": {
+                            "Ref": "DevelopmentTeam"
+                        }
+                    },
+                    {
+                        "Key": "OperationsTeam",
+                        "Value": {
+                            "Ref": "OperationsTeam"
+                        }
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": {
+                            "Ref": "Environment"
+                        }
+                    }
+                ]
+            }
+        }
+        
+                       
+                       
+        }
+    }
