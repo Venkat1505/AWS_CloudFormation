@@ -5,15 +5,10 @@
         "CidrIp1": {
             "Type": "String",
             "Description": "Provide the CIDR IP for the security group for LB and Nodes; i.e. 10.155.104.0/22",
-            "AllowedValues": [ "10.23.42.0/23" ],
+            "AllowedValues": [ "10.0.0.0/16" ],
             "ConstraintDescription": "Must be a valid CIDR range in the form of x.x.x.x/x"
         },
-        "CidrIp2": {
-            "Type": "String",
-            "Description": "Provide the CIDR IP for the security group for LB and Nodes; i.e. 10.155.104.0/22",
-            "AllowedValues": [ "149.45.241.0/26" ],
-            "ConstraintDescription": "Must be a valid CIDR range in the form of x.x.x.x/x"
-        },
+        
 	    "CWxCidr": {
             "Type": "String",
             "Description": "Provide the CIDR IP for the CWx Datacenter; i.e. 159.140.0.0/16",
@@ -38,12 +33,13 @@
             ]
         }
     },
+        
     "Resources": {
         "CAMM7LoadBalancerSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "Rules that allow communication inbound to a load balancer & outbound from the load balancer to communicate with nodes it is balancing.",
-                "VpcId": "vpc-09ad716ea82aef8a1",
+                "VpcId": "vpc-0bce93b455b561553",
                 "SecurityGroupIngress": [
                     {
                         "CidrIp": {
@@ -72,33 +68,7 @@
                         "ToPort": "443",
                         "Description": "HTTPS - Internal VPC CIDR 1"
                     },
-                    {
-                        "CidrIp": {
-                            "Ref": "CidrIp2"
-                        },
-                        "IpProtocol": "tcp",
-                        "FromPort": "80",
-                        "ToPort": "80",
-                        "Description": "HTTP - Internal VPC CIDR 2"
-                    },
-                    {
-                        "CidrIp": {
-                            "Ref": "CidrIp2"
-                        },
-                        "IpProtocol": "tcp",
-                        "FromPort": "2575",
-                        "ToPort": "2575",
-                        "Description": "HL7"
-                    },
-                    {
-                        "CidrIp": {
-                            "Ref": "CidrIp2"
-                        },
-                        "IpProtocol": "tcp",
-                        "FromPort": "443",
-                        "ToPort": "443",
-                        "Description": "HTTPS - Internal VPC CIDR 2"
-                    },
+                   
 		    {
           	  	"CidrIp": { "Ref": "CWxCidr" },
             	  	"IpProtocol": "tcp",
@@ -149,33 +119,7 @@
                         "ToPort": "80",
                         "Description": "HTTPS - Internal VPC CIDR 1"
                     },
-                    {
-                        "CidrIp": {
-                            "Ref": "CidrIp2"
-                        },
-                        "IpProtocol": "tcp",
-                        "FromPort": "80",
-                        "ToPort": "80",
-                        "Description": "HTTP - Internal VPC CIDR 2"
-                    },
-                    {
-                        "CidrIp": {
-                            "Ref": "CidrIp2"
-                        },
-                        "IpProtocol": "tcp",
-                        "FromPort": "2575",
-                        "ToPort": "2575",
-                        "Description": "HL7"
-                    },
-                    {
-                        "CidrIp": {
-                            "Ref": "CidrIp2"
-                        },
-                        "IpProtocol": "tcp",
-                        "FromPort": "443",
-                        "ToPort": "443",
-                        "Description": "HTTPS - Internal VPC CIDR 2"
-                    },
+                   
 		    {
             		"CidrIp": { "Ref": "CWxCidr" },
             		"IpProtocol": "tcp",
@@ -214,7 +158,7 @@
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "Rules that allow communication in to a load balancer and for the load balancer to communicate with nodes it is balancing.",
-                 "VpcId": "vpc-09ad716ea82aef8a1",
+                 "VpcId": "vpc-0bce93b455b561553",
                  "SecurityGroupIngress": [
                     {
                         "CidrIp": {
@@ -243,45 +187,8 @@
                         "FromPort": "80",
                         "ToPort": "80",
                         "Description": "HTTP - Internal VPC CIDR 1"
-                    },
-                    {
-                        "CidrIp": {
-                            "Ref": "CidrIp2"
-                        },
-                        "IpProtocol": "tcp",
-                        "FromPort": "443",
-                        "ToPort": "443",
-                        "Description": "HTTPS - Internal VPC CIDR 2"
-                    },
-                    {
-                        "CidrIp": {
-                            "Ref": "CidrIp2"
-                        },
-                        "IpProtocol": "tcp",
-                        "FromPort": "2575",
-                        "ToPort": "2575",
-                        "Description": "HL7"
-                    },
-                    
-                    {
-                        "CidrIp": {
-                            "Ref": "CidrIp2"
-                        },
-                        "IpProtocol": "tcp",
-                        "FromPort": "80",
-                        "ToPort": "80",
-                        "Description": "HTTP - Internal VPC CIDR 2"
-                    },
-                    {
-                        "CidrIp": {
-                            "Ref": "CidrIp2"
-                        },
-                        "IpProtocol": "tcp",
-                        "FromPort": "5701",
-                        "ToPort": "5708",
-                        "Description": "Hazelcast"
                     }
-                ],
+                   ],
                 "SecurityGroupEgress": [
                     {
                         "CidrIp": "0.0.0.0/0",
