@@ -1,0 +1,443 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS CloudFormation Template to build a CAMM 7 set of Aurora instances",
+  "Parameters": {
+      "VPCID": {
+          "Type": "List<AWS::EC2::VPC::Id>",
+          "Description": "Select the appropriate VPC to build the security groups."
+      },
+      "StorageDBPasswordParameter": {
+          "Type": "String",
+          "NoEcho": "true",
+          "Description": "Provide a password used to access the storage database as the cps_storage user."
+      },
+      "StorageDBName": {
+          "Type": "String",
+          "Description": "Create a storage database name; i.e. cpss1awsau"
+      },
+      "DicomDBPasswordParameter": {
+          "Type": "String",
+          "NoEcho": "true",
+          "Description": "Provide a password used to access the DICOM database as the cps_dicom user."
+      },
+      "DICOMDBName": {
+          "Type": "String",
+          "Description": "Create a DICOM database name; i.e. cpsd1awsau"
+      },
+      "IPv4CidrDBSecurityGroup1": {
+          "Type": "String",
+          "Description": "Provide the CIDR IP for the DB Security Group; i.e. 10.0.5.0/24",
+          "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+          "ConstraintDescription": "Must be a valid CIDR range in the form of x.x.x.x/x"
+      },
+      "IPv4CidrDBSecurityGroup2": {
+        "Type": "String",
+        "Description": "Provide the secondary CIDR IP for the DB Security Group; i.e. 10.0.6.0/24",
+        "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+        "ConstraintDescription": "Must be a valid CIDR range in the form of x.x.x.x/x"
+      },
+      "VPCSubnetIDsForDB": {
+          "Type": "List<AWS::EC2::Subnet::Id>",
+          "Description": "Select two CAMM DB subnets that are part of the selected VPC"
+      },
+      "DevelopmentTeam": {
+          "Type": "String",
+          "Description": "Assign a tag to identify the development team for these Aurora instances; i.e. CammPlatformServices"
+      },
+      "OperationsTeam": {
+          "Type": "String",
+          "Description": "Assign a tag to identify the operations team for these Aurora instances; i.e. CammPlatformServices"
+      },
+      "Environment": {
+          "Type": "String",
+          "Description": "Used to appropriately tag created resources.",
+          "AllowedValues": [      
+              "Production"
+          ]
+      }
+  },
+  "Resources": {
+      "ParameterGroup": {
+          "Type": "AWS::RDS::DBClusterParameterGroup",
+          "Properties": {
+              "Description": "Parameter group for CAMM 7 Aurora instances",
+              "Family": "aurora-postgresql9.6",
+              "Parameters": {
+                  "track_commit_timestamp": "1"
+              },
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": "CAMM7DBParameterGroup"
+                  },
+                  {
+                      "Key": "DevelopmentTeam",
+                      "Value": {
+                          "Ref": "DevelopmentTeam"
+                      }
+                  },
+                  {
+                      "Key": "OperationsTeam",
+                      "Value": {
+                          "Ref": "OperationsTeam"
+                      }
+                  },
+                  {
+                      "Key": "Environment",
+                      "Value": {
+                          "Ref": "Environment"
+                      }
+                  }
+              ]
+          }
+      },
+      "CAMM7DBSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+              "VpcId": "vpc-0bce93b455b561553",
+               "SecurityGroupIngress": [
+                  {
+                      "CidrIp": {
+                          "Ref": "IPv4CidrDBSecurityGroup1"
+                      },
+                      "IpProtocol": "tcp",
+                      "FromPort": "5432",
+                      "ToPort": "5432"
+                  },
+                  {
+                    "CidrIp": {
+                      "Ref": "IPv4CidrDBSecurityGroup2"
+                    },
+                    "IpProtocol": "tcp",
+                    "FromPort": "5432",
+                    "ToPort": "5432"
+                  }
+              ],
+              "GroupDescription": "Rules to allow connections inbound to the CAMM 7 Aurora dbs. These rules should contain the cidr ranges of the EC2 instances or the security group they belong to.",
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": "CAMM7DBSecurityGroup"
+                  },
+                  {
+                      "Key": "DevelopmentTeam",
+                      "Value": {
+                          "Ref": "DevelopmentTeam"
+                      }
+                  },
+                  {
+                      "Key": "OperationsTeam",
+                      "Value": {
+                          "Ref": "OperationsTeam"
+                      }
+                  },
+                  {
+                      "Key": "Environment",
+                      "Value": {
+                          "Ref": "Environment"
+                      }
+                  }
+              ]
+          }
+      },
+      "CAMM7DBSubnetGroup": {
+          "Type": "AWS::RDS::DBSubnetGroup",
+          "Properties": {
+              "DBSubnetGroupDescription": "Subnet group for CAMM 7 databases. This list should contain the subnets of the EC2 instances or be able to connect to them in order to ensure system connectivity.",
+              "SubnetIds": {
+                  "Ref": "VPCSubnetIDsForDB"
+              },
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": "CAMM7DBSubnetGroup"
+                  },
+                  {
+                      "Key": "DevelopmentTeam",
+                      "Value": {
+                          "Ref": "DevelopmentTeam"
+                      }
+                  },
+                  {
+                      "Key": "OperationsTeam",
+                      "Value": {
+                          "Ref": "OperationsTeam"
+                      }
+                  },
+                  {
+                      "Key": "Environment",
+                      "Value": {
+                          "Ref": "Environment"
+                      }
+                  }
+              ]
+          }
+      },
+      "CAMM7ProdDicomDBCluster": {
+          "Type": "AWS::RDS::DBCluster",
+          "Properties": {
+              "DatabaseName": {
+                  "Ref": "DICOMDBName"
+              },
+              "DBClusterIdentifier": {
+                "Ref": "DICOMDBName"
+              },
+              "DBClusterParameterGroupName": {
+                  "Ref": "ParameterGroup"
+              },
+              "DBSubnetGroupName": {
+                  "Ref": "CAMM7DBSubnetGroup"
+              },
+              "Engine": "aurora-postgresql",
+              "EngineVersion": "9.6.12",
+              "MasterUsername": "cps_dicom",
+              "MasterUserPassword": {
+                  "Ref": "DicomDBPasswordParameter"
+              },
+              "Port": "5432",
+              "VpcSecurityGroupIds": [
+                  {
+                      "Ref": "CAMM7DBSecurityGroup"
+                  }
+              ],
+              "StorageEncrypted": "true",
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": "CAMM7ProdDicomDBCluster"
+                  },
+                  {
+                      "Key": "DevelopmentTeam",
+                      "Value": {
+                          "Ref": "DevelopmentTeam"
+                      }
+                  },
+                  {
+                      "Key": "OperationsTeam",
+                      "Value": {
+                          "Ref": "OperationsTeam"
+                      }
+                  },
+                  {
+                      "Key": "Environment",
+                      "Value": {
+                          "Ref": "Environment"
+                      }
+                  }
+              ]
+          }
+      },
+      "ProdDicomDB": {
+          "Type": "AWS::RDS::DBInstance",
+          "Properties": {
+              "DBClusterIdentifier": {
+                  "Ref": "CAMM7ProdDicomDBCluster"
+              },
+              "DBInstanceClass": "db.r5.large",
+              "DBSubnetGroupName": {
+                  "Ref": "CAMM7DBSubnetGroup"
+              },
+              "Engine": "aurora-postgresql",
+              "EngineVersion": "9.6.12",
+              "PubliclyAccessible": "false",
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": "ProdDicomDB"
+                  },
+                  {
+                      "Key": "DevelopmentTeam",
+                      "Value": {
+                          "Ref": "DevelopmentTeam"
+                      }
+                  },
+                  {
+                      "Key": "OperationsTeam",
+                      "Value": {
+                          "Ref": "OperationsTeam"
+                      }
+                  },
+                  {
+                      "Key": "Environment",
+                      "Value": {
+                          "Ref": "Environment"
+                      }
+                  }
+              ]
+          }
+      },
+      "ProdDicomDB2": {
+          "Type": "AWS::RDS::DBInstance",
+          "Properties": {
+              "DBClusterIdentifier": {
+                  "Ref": "CAMM7ProdDicomDBCluster"
+              },
+              "DBInstanceClass": "db.r5.large",
+              "DBSubnetGroupName": {
+                  "Ref": "CAMM7DBSubnetGroup"
+              },
+              "Engine": "aurora-postgresql",
+              "EngineVersion": "9.6.12",
+              "PubliclyAccessible": "false",
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": "ProdDicomDB2"
+                  },
+                  {
+                      "Key": "DevelopmentTeam",
+                      "Value": {
+                          "Ref": "DevelopmentTeam"
+                      }
+                  },
+                  {
+                      "Key": "OperationsTeam",
+                      "Value": {
+                          "Ref": "OperationsTeam"
+                      }
+                  },
+                  {
+                      "Key": "Environment",
+                      "Value": {
+                          "Ref": "Environment"
+                      }
+                  }
+              ]
+          }
+      },
+      "CAMM7ProdStorageDBCluster": {
+          "Type": "AWS::RDS::DBCluster",
+          "Properties": {
+              "DatabaseName": {
+                  "Ref": "StorageDBName"
+              },
+              "DBClusterIdentifier": {
+                "Ref": "StorageDBName"
+              },
+              "DBClusterParameterGroupName": {
+                  "Ref": "ParameterGroup"
+              },
+              "DBSubnetGroupName": {
+                  "Ref": "CAMM7DBSubnetGroup"
+              },
+              "Engine": "aurora-postgresql",
+              "EngineVersion": "9.6.12",
+              "MasterUsername": "cps_storage",
+              "MasterUserPassword": {
+                  "Ref": "StorageDBPasswordParameter"
+              },
+              "Port": "5432",
+              "VpcSecurityGroupIds": [
+                  {
+                      "Ref": "CAMM7DBSecurityGroup"
+                  }
+              ],
+              "StorageEncrypted": "true",
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": "CAMM7ProdStorageDBCluster"
+                  },
+                  {
+                      "Key": "DevelopmentTeam",
+                      "Value": {
+                          "Ref": "DevelopmentTeam"
+                      }
+                  },
+                  {
+                      "Key": "OperationsTeam",
+                      "Value": {
+                          "Ref": "OperationsTeam"
+                      }
+                  },
+                  {
+                      "Key": "Environment",
+                      "Value": {
+                          "Ref": "Environment"
+                      }
+                  }
+              ]
+          }
+      },
+      "ProdStorageDB": {
+          "Type": "AWS::RDS::DBInstance",
+          "Properties": {
+              "DBClusterIdentifier": {
+                  "Ref": "CAMM7ProdStorageDBCluster"
+              },
+              "DBInstanceClass": "db.r5.large",
+              "DBSubnetGroupName": {
+                  "Ref": "CAMM7DBSubnetGroup"
+              },
+              "Engine": "aurora-postgresql",
+              "EngineVersion": "9.6.12",
+              "PubliclyAccessible": "false",
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": "ProdStorageDB"
+                  },
+                  {
+                      "Key": "DevelopmentTeam",
+                      "Value": {
+                          "Ref": "DevelopmentTeam"
+                      }
+                  },
+                  {
+                      "Key": "OperationsTeam",
+                      "Value": {
+                          "Ref": "OperationsTeam"
+                      }
+                  },
+                  {
+                      "Key": "Environment",
+                      "Value": {
+                          "Ref": "Environment"
+                      }
+                  }
+              ]
+          }
+      },
+      "ProdStorageDB2": {
+          "Type": "AWS::RDS::DBInstance",
+          "Properties": {
+              "DBClusterIdentifier": {
+                  "Ref": "CAMM7ProdStorageDBCluster"
+              },
+              "DBInstanceClass": "db.r5.large",
+              "DBSubnetGroupName": {
+                  "Ref": "CAMM7DBSubnetGroup"
+              },
+              "Engine": "aurora-postgresql",
+              "EngineVersion": "9.6.12",
+              "PubliclyAccessible": "false",
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": "ProdStorageDB2"
+                  },
+                  {
+                      "Key": "DevelopmentTeam",
+                      "Value": {
+                          "Ref": "DevelopmentTeam"
+                      }
+                  },
+                  {
+                      "Key": "OperationsTeam",
+                      "Value": {
+                          "Ref": "OperationsTeam"
+                      }
+                  },
+                  {
+                      "Key": "Environment",
+                      "Value": {
+                          "Ref": "Environment"
+                      }
+                  }
+              ]
+          }
+      }
+                     
+                     
+      }
+  }
